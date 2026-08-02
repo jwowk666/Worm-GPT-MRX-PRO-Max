@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>WormGPT-MRX [0.5v]</title>
-    <!-- Google Sign-In -->
-    <script src="https://accounts.google.com/gsi/client"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent!important;outline:none!important}
         body{font-family:Arial,sans-serif;background:#050508;height:100vh;display:flex;justify-content:center;align-items:center;color:#fff;overflow:hidden}
@@ -20,14 +18,17 @@
         .loader-fill{width:0%;height:100%;background:linear-gradient(90deg,#ff003c,#ffd700);transition:width .05s linear}
         .loader-percent{color:#555;font-size:.8rem;margin-top:5px}
         
-        /* ===== شاشة تسجيل الدخول بجوجل ===== */
+        /* ===== شاشة تسجيل الدخول بكلمة مرور ===== */
         .login-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.95);z-index:99998;display:none;flex-direction:column;justify-content:center;align-items:center;gap:25px}
         .login-screen.active{display:flex}
         .login-screen .logo-img{width:120px;height:120px;border-radius:50%;border:4px solid #ff003c;box-shadow:0 0 60px rgba(255,0,60,.3);object-fit:cover}
         .login-screen h1{font-size:2.2rem;font-weight:900;background:linear-gradient(45deg,#ff003c,#ffd700);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
         .login-screen .subtitle{color:#888;font-size:.9rem;text-align:center;max-width:320px;line-height:1.8}
         .login-screen .subtitle .highlight{color:#ffd700}
-        .login-screen .g_id_signin{transform:scale(1.2)}
+        .login-screen input{width:300px;padding:14px 20px;border-radius:30px;border:2px solid rgba(255,0,60,.3);background:rgba(255,255,255,.05);color:#fff;font-size:1.1rem;text-align:center;letter-spacing:3px;transition:.3s}
+        .login-screen input:focus{border-color:#ff003c;outline:none;box-shadow:0 0 30px rgba(255,0,60,.2)}
+        .login-btn{background:linear-gradient(45deg,#ff003c,#ffd700);border:none;padding:14px 50px;border-radius:30px;color:#000;font-size:1.1rem;font-weight:900;cursor:pointer;transition:.3s;box-shadow:0 0 30px rgba(255,0,60,.2)}
+        .login-btn:hover{transform:scale(1.05)}
         .login-error{color:#ff4444;font-size:.9rem;min-height:25px}
         .login-hint{color:#444;font-size:.7rem;margin-top:5px}
         .login-hint span{color:#ffd700;font-weight:700}
@@ -116,31 +117,18 @@
     <div class="loader-percent" id="loaderPercent">0%</div>
 </div>
 
-<!-- ===== شاشة تسجيل الدخول بجوجل ===== -->
+<!-- ===== شاشة تسجيل الدخول بكلمة مرور ===== -->
 <div class="login-screen" id="loginScreen">
     <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTcCR31vwksQK_UlVMJCiiZyXHRiLau5RwsxQ-IAfDGdg&s=10" alt="WormGPT-MRX" class="logo-img">
     <h1>WormGPT-MRX [0.5v]</h1>
     <div class="subtitle">
         ☠️ <span class="highlight">𝐖𝐨𝐫𝐦𝐆𝐏𝐓-𝐌𝐑𝐗</span> ☠️<br>
-        <span style="color:#555;font-size:.8rem;">سجل دخولك بحساب Google</span>
+        <span style="color:#555;font-size:.8rem;">أدخل كلمة المرور للدخول</span>
     </div>
-    <div id="g_id_onload"
-         data-client_id="YOUR_GOOGLE_CLIENT_ID"
-         data-context="signin"
-         data-ux_mode="popup"
-         data-callback="handleCredentialResponse"
-         data-auto_prompt="false">
-    </div>
-    <div class="g_id_signin"
-         data-type="standard"
-         data-shape="rectangular"
-         data-theme="dark"
-         data-text="signin_with"
-         data-size="large"
-         data-logo_alignment="center">
-    </div>
+    <input type="password" id="passwordInput" placeholder="••••••••" autocomplete="off" onkeydown="if(event.key==='Enter') checkPassword()">
+    <button class="login-btn" onclick="checkPassword()">🚀 دخول</button>
     <div class="login-error" id="loginError"></div>
-    <div class="login-hint">🔑 مطلوب حساب <span>Gmail</span> للدخول</div>
+    <div class="login-hint">🔑 كلمة المرور: <span>WWE</span></div>
 </div>
 
 <div class="stars-container" id="starsContainer"></div>
@@ -196,8 +184,8 @@
 //                     🔥 WORMGPT-MRX [0.5v] 🔥
 // =====================================================================
 
+const PASSWORD = "WWE";
 const API_URL = "/api/chat";
-let currentUser = null;
 
 // ===== شاشة التحميل =====
 (function runLoader() {
@@ -214,26 +202,24 @@ let currentUser = null;
             setTimeout(() => {
                 document.getElementById('loadingScreen').style.display = 'none';
                 document.getElementById('loginScreen').classList.add('active');
+                document.getElementById('passwordInput').focus();
             }, 300);
         }
     }, 100);
 })();
 
-// ===== تسجيل الدخول بجوجل =====
-function handleCredentialResponse(response) {
-    // فك تشفير الـ JWT للحصول على بيانات المستخدم
-    try {
-        const payload = JSON.parse(atob(response.credential.split('.')[1]));
-        currentUser = {
-            email: payload.email,
-            name: payload.name,
-            picture: payload.picture
-        };
+// ===== التحقق من كلمة المرور =====
+function checkPassword() {
+    const input = document.getElementById('passwordInput');
+    const error = document.getElementById('loginError');
+    if (input.value === PASSWORD) {
         document.getElementById('loginScreen').classList.remove('active');
         document.getElementById('appContainer').classList.add('active');
         initApp();
-    } catch(e) {
-        document.getElementById('loginError').textContent = '❌ فشل تسجيل الدخول!';
+    } else {
+        error.textContent = '❌ كلمة المرور غير صحيحة!';
+        input.value = '';
+        input.focus();
     }
 }
 
@@ -571,6 +557,7 @@ async function sendMessage() {
 }
 
 console.log('🔥 WormGPT-MRX [0.5v] جاهز!');
+console.log('🔑 كلمة المرور:', PASSWORD);
 </script>
 
 </body>
